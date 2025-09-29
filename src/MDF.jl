@@ -81,7 +81,7 @@ Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, Int64}
     A = S.data
     n = size(A, 1)
 
-    # 3 measures: discard, previous discard, defficiency, degree, label
+    # 4 measures: discard, defficiency, degree, label
     discard = zeros(n, 4)
     σ = zeros(Int64, n)
     𝓥 = collect(1:n)
