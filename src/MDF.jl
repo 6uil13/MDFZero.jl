@@ -69,8 +69,6 @@ Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, Int}};
 
     # 4 measures: discard, defficiency, degree, label
     fillin = Dict{Int, Tuple{T, T, T, Int}}()
-    discard = zeros(n)
-    σ = zeros(Int, n)
 
     # initial discard
     for m in 1:n
@@ -78,6 +76,8 @@ Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, Int}};
     end
 
     # main decomposition loop
+    discard = zeros(n)
+    σ = zeros(Int, n)
     for k = 1:n-1
         m = argmin(fillin)
         σ[k] = m
