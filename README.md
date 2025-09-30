@@ -1,13 +1,13 @@
-# MDF
+# MDFZero.jl
 The [minimum discard fill](https://doi.org/10.1137/0613057) (MDF) permutation heuristically minimizes the discarded values of an incomplete LU (iLU) factorization.
 
-`MDF.jl` is a Julia implementation of the minimum discard fill ordering for the iLU factorization with zero level of fill in.
+`MDFZero.jl` is a Julia implementation of the minimum discard fill ordering for the iLU factorization with zero level of fill in.
 
 Installation
 -------------
 ```
 julia> ]
-julia> add MDF
+julia> add MDFZero
 ```
 
 Purpose
@@ -20,24 +20,24 @@ the MDF ordering aims to minimize the discarded fill between incomplete LU facto
 How to use
 -------------
 ```
-julia> using MDF, LinearAlgebra, SparseArrays
+julia> using MDFZero, LinearAlgebra, SparseArrays
 julia> A = Symmetric(sprand(1000, 1000, 1e-4) + 10I)
-julia> p = mdf(A)
-julia> Fp = ILU(A, p)
-julia> F = ILU(A)
+julia> p = mdf0(A)
+julia> Fp = ILU0(A, p)
+julia> F = ILU0(A)
 julia> distance(A, Fp) < distance(A, F)
 ```
-- `mdf(A)`: MDF permutation based on a symmetric sparse matrix A, creates a copy of A
-- `mdf!(A)`: MDF permutation, updates matrix A
-- `ILU` uses `ILUZero.ilu0` function
+- `mdf0(A)`: MDF permutation based on a symmetric sparse matrix A, creates a copy of A
+- `mdf0!(A)`: MDF permutation, updates matrix A
+- `ILU0` uses `ILUZero.ilu0` function
 - `distance`: measures the Frobenius norm of the difference between two matrices
 
 Performance
 -------------
 ```
-julia> using MDF, LinearAlgebra, SparseArrays, BenchmarkTools
+julia> using MDFZero, LinearAlgebra, SparseArrays, BenchmarkTools
 julia> A = Symmetric(sprand(1000, 1000, 1e-4) + 10I);
-julia> p = @btime mdf(A);
+julia> p = @btime mdf0(A);
   6.240 ms (13049 allocations: 663.89 KiB)
 ```
 

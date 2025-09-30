@@ -1,4 +1,4 @@
-module MDF
+module MDFZero
 
 import ILUZero
 import LinearAlgebra: Symmetric, LowerTriangular, UpperTriangular, I, ldiv!, \, norm, tril, triu, one
@@ -7,7 +7,7 @@ import SparseArrays: SparseMatrixCSC, permute, spdiagm
 include("ILU0.jl")
 include("Laplacian.jl")
 
-export mdf, mdf!, ILU, laplacian, distance
+export mdf0, mdf0!, ILU0, laplacian, distance
 
 function update!(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
     colptrm = A.colptr[m]:A.colptr[m + 1] - 1
@@ -67,7 +67,7 @@ function discardedfill(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
     f, defficiency, degree, m
 end
 
-Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, U}}, 
+Base.@propagate_inbounds function mdf0!(S::Symmetric{T, SparseMatrixCSC{T, U}}, 
     discard::AbstractVector{T} = T[]) where {T <: Real, U <: Integer}
 
     A = S.data
@@ -106,6 +106,6 @@ Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, U}},
     σ
 end
 
-mdf(A, discard = eltype(A)[]) = mdf!(copy(A), discard)
+mdf0(A, discard = eltype(A)[]) = mdf0!(copy(A), discard)
 
 end
