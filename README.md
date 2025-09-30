@@ -1,7 +1,7 @@
 # MDFZero.jl
-The [minimum discard fill](https://doi.org/10.1137/0613057) (MDF) permutation heuristically minimizes the discarded values of an incomplete LU (iLU) factorization.
+`MDFZero.jl` is a Julia implementation of the minimum discard fill (MDF) ordering for the incomplete LU (iLU) factorization with zero level of fill in.
 
-`MDFZero.jl` is a Julia implementation of the minimum discard fill ordering for the iLU factorization with zero level of fill in.
+The [minimum discard fill](https://doi.org/10.1137/0613057) permutation heuristically minimizes the discarded values of an iLU factorization.
 
 Installation
 -------------
