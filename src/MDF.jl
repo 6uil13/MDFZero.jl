@@ -1,9 +1,15 @@
 module MDF
 
-using SparseArrays, LinearAlgebra
-export mdf, mdf!
+import ILUZero
+import LinearAlgebra: Symmetric, LowerTriangular, UpperTriangular, I, ldiv!, \, norm, tril, triu, one
+import SparseArrays: SparseMatrixCSC, permute, spdiagm
 
-function update!(A::SparseMatrixCSC{T, Int}, m::Int) where T <: Real
+include("ILU0.jl")
+include("Laplacian.jl")
+
+export mdf, mdf!, ILU, laplacian, distance
+
+function update!(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
     colptrm = A.colptr[m]:A.colptr[m + 1] - 1
     a = A[:, m]
 
@@ -29,7 +35,7 @@ function update!(A::SparseMatrixCSC{T, Int}, m::Int) where T <: Real
     nothing
 end
 
-function discardedfill(A::SparseMatrixCSC{T, Int}, m::Int) where T <: Real
+function discardedfill(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
     amm = A[m, m]
     f = 0.0
     defficiency = 0
@@ -61,8 +67,8 @@ function discardedfill(A::SparseMatrixCSC{T, Int}, m::Int) where T <: Real
     f, defficiency, degree, m
 end
 
-Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, Int}};
-              finaldiscard::Bool = false) where T <: Real
+Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, U}}, 
+    discard::AbstractVector{T} = T[]) where {T <: Real, U <: Integer}
 
     A = S.data
     n = size(A, 1)
@@ -76,13 +82,12 @@ Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, Int}};
     end
 
     # main decomposition loop
-    discard = zeros(n)
     σ = zeros(Int, n)
     for k = 1:n-1
         m = argmin(fillin)
         σ[k] = m
-        if finaldiscard
-            discard[m] = fillin[m][1]
+        if !isempty(discard)
+            discard[m] = √fillin[m][1]
         end
 
     	update!(A, m)
@@ -98,13 +103,9 @@ Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, Int}};
     end
     σ[n] = argmin(fillin)
     
-    if finaldiscard
-        return σ, .√discard
-    else
-        return σ
-    end
+    σ
 end
 
-mdf(A; finaldiscard::Bool = false) = mdf!(copy(A); finaldiscard)
+mdf(A, discard = eltype(A)[]) = mdf!(copy(A), discard)
 
 end

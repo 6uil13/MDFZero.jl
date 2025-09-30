@@ -1,6 +1,3 @@
-using SparseArrays, LinearAlgebra
-import ILUZero, LinearAlgebra.ldiv!, LinearAlgebra.\
-
 struct ILU{T <: Any, N <: Integer}
     L::LowerTriangular{T}
     U::UpperTriangular{T}
@@ -8,11 +5,14 @@ struct ILU{T <: Any, N <: Integer}
     q::AbstractVector{N}
 end
 
-function LinearAlgebra.tril(F::ILUZero.ILU0Precon)
+ILU(A::Symmetric) = ILU(A.data)
+ILU(A::Symmetric, p) = ILU(A.data, p, p)
+
+function tril(F::ILUZero.ILU0Precon)
     LowerTriangular(I + SparseMatrixCSC(F.m, min(F.m, F.n), F.l_colptr, F.l_rowval, F.l_nzval))
 end
 
-function LinearAlgebra.triu(F::ILUZero.ILU0Precon)
+function triu(F::ILUZero.ILU0Precon)
     UpperTriangular(SparseMatrixCSC(min(F.m, F.n), F.n, F.u_colptr, F.u_rowval, F.u_nzval))
 end
 
@@ -47,3 +47,12 @@ function \(A::ILU, B)
 end
 
 Base.iterate(F::ILU, args...) = iterate((F.L, F.U, F.p, F.q), args...)
+
+function distance(A::Symmetric{T, SparseMatrixCSC{T, V}},
+                    F::ILU{T, V}) where {T <: Real, V <: Integer}
+    
+    L, U, p = F
+    norm(permute(A, p, p) - L * U)
+end
+
+distance(A, F) = distance(F, A)
