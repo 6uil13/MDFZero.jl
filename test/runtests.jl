@@ -28,7 +28,7 @@ end
 
 ⊗ = kron
 
-function laplacian{d}(n::Int64) where d
+function laplacian{d}(n::Int) where d
     if d == 1
         e = ones(n)
         A = spdiagm(0 => 2 * e, 1 => -e[1:n-1], -1 => -e[1:n-1])

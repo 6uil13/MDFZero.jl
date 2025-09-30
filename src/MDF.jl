@@ -3,30 +3,18 @@ module MDF
 using SparseArrays, LinearAlgebra
 export mdf, mdf!
 
-function tiebreacking(discard::AbstractMatrix, candidates::Vector)
-    n, l = size(discard)
-    k = length(candidates)
-    j = 1
-    while j ≤ l && length(candidates) > 1
-        discardj = view(discard, candidates, j)
-        d = minimum(discardj)
-        candidates = candidates[abs.(discardj .- d) .< eps(0.0)]
-        j += 1
-    end
-
-    candidates[1]
-end
-
-function update!(A::SparseMatrixCSC{T, Int64}, m::Int64) where T <: Real
+function update!(A::SparseMatrixCSC{T, Int}, m::Int) where T <: Real
+    colptrm = A.colptr[m]:A.colptr[m + 1] - 1
     a = A[:, m]
+
     amm = a[m]
-    for r = A.colptr[m]:A.colptr[m + 1] - 1
+    for r in colptrm
         i = A.rowval[r]
         aim = a[i]
 
         𝓘 = A.colptr[i]:A.colptr[i + 1] - 1
         rows = view(A.rowval, 𝓘)
-        for s = A.colptr[m]:A.colptr[m + 1] - 1
+        for s in colptrm
             j = A.rowval[s]
             # find aji = aij != 0
             t = findfirst(rows .== j)
@@ -41,10 +29,9 @@ function update!(A::SparseMatrixCSC{T, Int64}, m::Int64) where T <: Real
     nothing
 end
 
-function discardedfill(A::SparseMatrixCSC{T, Int64}, m::Int64) where T <: Real
+function discardedfill(A::SparseMatrixCSC{T, Int}, m::Int) where T <: Real
     amm = A[m, m]
     f = 0.0
-    colnorm = 0.0
     defficiency = 0
     degree = 0
     for r = A.colptr[m]:A.colptr[m + 1] - 1
@@ -70,47 +57,49 @@ function discardedfill(A::SparseMatrixCSC{T, Int64}, m::Int64) where T <: Real
     end
 
     f /= amm^2
-    colnorm += abs(amm)
 
-    [f, defficiency, degree]
+    f, defficiency, degree, m
 end
 
-Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, Int64}};
+Base.@propagate_inbounds function mdf!(S::Symmetric{T, SparseMatrixCSC{T, Int}};
               finaldiscard::Bool = false) where T <: Real
 
     A = S.data
     n = size(A, 1)
 
     # 4 measures: discard, defficiency, degree, label
-    discard = zeros(n, 4)
-    σ = zeros(Int64, n)
-    𝓥 = collect(1:n)
-    discard[:, 4] = 𝓥
+    fillin = Dict{Int, Tuple{T, T, T, Int}}()
+    discard = zeros(n)
+    σ = zeros(Int, n)
 
     # initial discard
-    for m in 𝓥
-        discard[m, 1:3] = discardedfill(A, m)
+    for m in 1:n
+        fillin[m] = discardedfill(A, m)
     end
 
     # main decomposition loop
     for k = 1:n-1
-        m = tiebreacking(discard, 𝓥) # most expensive
+        m = argmin(fillin)
         σ[k] = m
-        setdiff!(𝓥, m)
-
-        𝓝 = A.rowval[A.colptr[m]:A.colptr[m + 1] - 1]
-        setdiff!(𝓝, σ)
+        if finaldiscard
+            discard[m] = fillin[m][1]
+        end
 
     	update!(A, m)
         
-        Base.Threads.@threads for v in 𝓝
-            discard[v, 1:3] = discardedfill(A, v)
+        pop!(fillin, m)
+        𝓝 = A.rowval[A.colptr[m]:A.colptr[m + 1] - 1]
+        for v in 𝓝
+            if !haskey(fillin, v)
+                continue
+            end
+            fillin[v] = discardedfill(A, v)
         end
     end
-    σ[n] = 𝓥[1]
+    σ[n] = argmin(fillin)
     
     if finaldiscard
-        return σ, .√discard[:, 1]
+        return σ, .√discard
     else
         return σ
     end
