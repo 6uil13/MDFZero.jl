@@ -10,24 +10,24 @@ include("Laplacian.jl")
 export mdf0, mdf0!, ILU0, laplacian, distance
 
 function update!(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
-    colptrm = A.colptr[m]:A.colptr[m + 1] - 1
     a = A[:, m]
+    Amm = a[m]
 
-    amm = a[m]
+    colptrm = A.colptr[m]:A.colptr[m + 1] - 1
     for r in colptrm
         i = A.rowval[r]
-        aim = a[i]
+        Aim = a[i]
 
         𝓘 = A.colptr[i]:A.colptr[i + 1] - 1
         rows = view(A.rowval, 𝓘)
         for s in colptrm
             j = A.rowval[s]
-            # find aji = aij != 0
+            # find Aji = Aij != 0
             t = findfirst(rows .== j)
 
             if !isnothing(t)
-                ajm = a[j] # = amj
-                A.nzval[t + 𝓘[1] - 1] -= (aim * ajm) / amm
+                Ajm = a[j] # = Amj, only lower triangular part is used
+                A.nzval[t + 𝓘[1] - 1] -= (Aim * Ajm) / Amm
             end
         end
     end
@@ -36,25 +36,27 @@ function update!(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
 end
 
 function discardedfill(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
-    amm = A[m, m]
+    Amm = A[m, m]
     f = 0.0
     defficiency = 0
     degree = 0
-    for r = A.colptr[m]:A.colptr[m + 1] - 1
+
+    colptrm = A.colptr[m]:A.colptr[m + 1] - 1
+    for r in colptrm
         i = A.rowval[r]
-        aim = A.nzval[r]
+        Aim = A.nzval[r]
 
         𝓘 = A.colptr[i]:A.colptr[i + 1] - 1
         rows = view(A.rowval, 𝓘)
-        for s = A.colptr[m]:A.colptr[m + 1] - 1
+        for s in colptrm
             j = A.rowval[s]
             t = findfirst(rows .== j)
-            null_aij = ! (!isnothing(t) &&
+            null_Aij = ! (!isnothing(t) &&
             abs(A.nzval[t + 𝓘[1] - 1]) > eps(1e2))
 
-            if null_aij
-                ajm = A.nzval[s]
-                f += (aim * ajm)^2
+            if null_Aij
+                Ajm = A.nzval[s]
+                f += (Aim * Ajm)^2
                 defficiency += 1
             else
                 degree += 1
@@ -62,7 +64,7 @@ function discardedfill(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
         end
     end
 
-    f /= amm^2
+    f /= Amm^2
 
     f, defficiency, degree, m
 end
