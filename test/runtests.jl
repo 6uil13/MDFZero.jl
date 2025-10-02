@@ -1,8 +1,4 @@
 using MDFZero, Test, Random, SparseArrays, LinearAlgebra
-import Base.permute!, SparseArrays.permute
-
-permute!(A::Symmetric, p, q) = permute!(A.data, p, q)
-permute(A::Symmetric, p, q) = permute(A.data, p, q)
 
 function symsprand(n, ε = 1.0)
     R = sprand(n, n, ε)

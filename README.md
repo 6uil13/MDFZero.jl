@@ -21,13 +21,14 @@ How to use
 -------------
 ```
 julia> using MDFZero, LinearAlgebra, SparseArrays
-julia> A = Symmetric(sprand(1000, 1000, 5 / 1000) + 10I)
+julia> C = sprand(1000, 1000, 5 / 1000)
+julia> A = Symmetric(tril(C, -1) + tril(C)' + 10I);
 julia> p = mdf0(A)
 julia> Fp = ILU0(A, p)
 julia> F = ILU0(A)
 julia> distance(A, Fp) < distance(A, F)
 ```
-- `mdf0(A)`: MDF permutation based on a symmetric sparse matrix A. Creates a copy of A. Only lower triangular part and diagonal are considered. Upper part is ignored. 
+- `mdf0(A)`: MDF permutation based on a symmetric sparse matrix A. Creates a copy of A.
 - `mdf0!(A)`: MDF permutation, updates matrix A
 - `ILU0` uses `ILUZero.ilu0` function
 - `distance`: measures the Frobenius norm of the difference between two matrices
@@ -36,9 +37,10 @@ Performance
 -------------
 ```
 julia> using MDFZero, LinearAlgebra, SparseArrays, BenchmarkTools
-julia> A = Symmetric(sprand(1000, 1000, 5 / 1000) + 10I);
+julia> C = sprand(1000, 1000, 5 / 1000)
+julia> A = Symmetric(tril(C, -1) + tril(C)' + 10I);
 julia> p = @btime mdf0(A);
-  13.022 ms (635084 allocations: 19.83 MiB)
+  14.500 ms (765155 allocations: 23.80 MiB)
 ```
 
 Related

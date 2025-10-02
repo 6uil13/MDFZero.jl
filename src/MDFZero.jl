@@ -3,11 +3,12 @@ module MDFZero
 import ILUZero
 import LinearAlgebra: Symmetric, LowerTriangular, UpperTriangular, I, ldiv!, \, norm, tril, triu, one
 import SparseArrays: SparseMatrixCSC, permute, spdiagm
+import Base: permute!
 
 include("ILU0.jl")
 include("Laplacian.jl")
 
-export mdf0, mdf0!, ILU0, laplacian, distance
+export mdf0, mdf0!, ILU0, laplacian, distance, permute, permute!
 
 function update!(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
     a = A[:, m]

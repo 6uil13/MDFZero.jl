@@ -7,6 +7,8 @@ end
 
 ILU0(A::Symmetric) = ILU0(A.data)
 ILU0(A::Symmetric, p) = ILU0(A.data, p, p)
+permute!(A::Symmetric, p, q) = permute!(A.data, p, q)
+permute(A::Symmetric, p, q) = permute(A.data, p, q)
 
 function tril(F::ILUZero.ILU0Precon)
     LowerTriangular(I + SparseMatrixCSC(F.m, min(F.m, F.n), F.l_colptr, F.l_rowval, F.l_nzval))
