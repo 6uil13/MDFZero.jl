@@ -10,24 +10,32 @@ include("Laplacian.jl")
 
 export mdf0, mdf0!, ILU0, laplacian, distance, permute, permute!
 
-function update!(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
-    a = A[:, m]
-    Amm = a[m]
-
+function update!(A::SparseMatrixCSC{T, <:Integer}, m::Int, a::Vector{T}) where T <: Real
     colptrm = A.colptr[m]:A.colptr[m + 1] - 1
+    
+    a .= 0.0
+    Amm = 0.0
     for r in colptrm
         i = A.rowval[r]
-        Aim = a[i]
+        a[r - colptrm[1] + 1] = A.nzval[r]
+        if i == m
+            Amm = a[r - colptrm[1] + 1]
+        end
+    end
+
+    for r in colptrm
+        i = A.rowval[r]
+        Aim = a[r - colptrm[1] + 1]
 
         𝓘 = A.colptr[i]:A.colptr[i + 1] - 1
         rows = view(A.rowval, 𝓘)
         for s in colptrm
             j = A.rowval[s]
             # find Aji = Aij != 0
-            t = findfirst(rows .== j)
+            t = findfirst(isequal(j), rows)
 
             if !isnothing(t)
-                Ajm = a[j] # = Amj, only lower triangular part is used
+                Ajm = a[s - colptrm[1] + 1] # = Amj
                 A.nzval[t + 𝓘[1] - 1] -= (Aim * Ajm) / Amm
             end
         end
@@ -37,21 +45,24 @@ function update!(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
 end
 
 function discardedfill(A::SparseMatrixCSC{<:Real, <:Integer}, m::Int)
-    Amm = A[m, m]
     f = 0.0
     defficiency = 0
     degree = 0
 
+    Amm = 0.0
     colptrm = A.colptr[m]:A.colptr[m + 1] - 1
     for r in colptrm
         i = A.rowval[r]
         Aim = A.nzval[r]
+        if i == m
+            Amm = Aim
+        end
 
         𝓘 = A.colptr[i]:A.colptr[i + 1] - 1
         rows = view(A.rowval, 𝓘)
         for s in colptrm
             j = A.rowval[s]
-            t = findfirst(rows .== j)
+            t = findfirst(isequal(j), rows)
             null_Aij = ! (!isnothing(t) &&
             abs(A.nzval[t + 𝓘[1] - 1]) > eps(1e2))
 
@@ -76,8 +87,11 @@ Base.@propagate_inbounds function mdf0!(S::Symmetric{T, SparseMatrixCSC{T, U}},
     A = S.data
     n = size(A, 1)
 
+    colnnz = maximum(diff(A.colptr))
+    a = zeros(T, colnnz)
+
     # 4 measures: discard, defficiency, degree, label
-    fillin = Dict{Int, Tuple{T, T, T, Int}}()
+    fillin = Dict{Int, Tuple{T, Int, Int, Int}}()
 
     # initial discard
     for m in 1:n
@@ -93,15 +107,14 @@ Base.@propagate_inbounds function mdf0!(S::Symmetric{T, SparseMatrixCSC{T, U}},
             discard[m] = √fillin[m][1]
         end
 
-    	update!(A, m)
+    	update!(A, m, a)
         
         pop!(fillin, m)
         𝓝 = A.rowval[A.colptr[m]:A.colptr[m + 1] - 1]
         for v in 𝓝
-            if !haskey(fillin, v)
-                continue
+            if haskey(fillin, v)
+                fillin[v] = discardedfill(A, v)
             end
-            fillin[v] = discardedfill(A, v)
         end
     end
     σ[n] = argmin(fillin)

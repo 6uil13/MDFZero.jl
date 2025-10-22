@@ -40,7 +40,7 @@ julia> using MDFZero, LinearAlgebra, SparseArrays, BenchmarkTools
 julia> C = sprand(1000, 1000, 5 / 1000)
 julia> A = Symmetric(tril(C, -1) + tril(C)' + 10I);
 julia> p = @btime mdf0(A);
-  14.500 ms (765155 allocations: 23.80 MiB)
+  6.132 ms (1042 allocations: 411.07 KiB)
 ```
 
 Related
